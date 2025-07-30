@@ -1,28 +1,179 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <title>Attrape la pièce !</title>
-  <style>
-    body { background: #111; display: flex; flex-direction: column; align-items: center; color: #fff;}
-    canvas { background: #222; border: 2px solid #fff; margin-top: 24px; }
-    #startMenu { margin-top: 20px; }
-    #startButton { font-size: 18px; padding: 10px 20px; }
-    #levelSelect { font-size: 16px; margin-right: 10px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Super Pixel Adventure 2</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+        :root {
+            --mario-orange: #FC9838;
+            --mario-brown: #C84C0C;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; image-rendering: pixelated; }
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+        }
+        body {
+            font-family: 'Press Start 2P', cursive;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        h1 {
+            color: white;
+            text-shadow: 4px 4px 0px var(--mario-brown);
+            margin-bottom: 20px;
+            animation: bounce 2s ease-in-out infinite;
+            text-align: center;
+            position: absolute;
+            top: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 11;
+        }
+        @keyframes bounce { 
+            50% { transform: translateX(-50%) translateY(-10px); } 
+        }
+        #gameWrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background: #87CEEB;
+        }
+        .overlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-shadow: 2px 2px #000;
+            background: rgba(0,0,0,0.7);
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.2s, visibility 0.2s;
+            z-index: 10;
+        }
+        .overlay.active {
+            visibility: visible;
+            opacity: 1;
+        }
+        .menu-box {
+            background: #000;
+            border: 4px solid white;
+            padding: 30px;
+            text-align: center;
+            width: 90%;
+            max-width: 450px;
+        }
+        .menu-box h2 {
+            font-size: 1.5em;
+            margin-bottom: 25px;
+            color: var(--mario-orange);
+        }
+        .menu-box button {
+            font-family: inherit;
+            font-size: 1em;
+            padding: 10px 20px;
+            cursor: pointer;
+            background: #333;
+            border: 2px solid white;
+            color: white;
+            margin-top: 10px;
+            width: 100%;
+        }
+        #skinlist { display: flex; gap: 16px; margin-bottom: 24px; justify-content: center; flex-wrap: wrap;}
+        #skinlist img { width: 64px; height: 64px; border: 4px solid #505050; cursor: pointer; }
+        #skinlist img.selected { border-color: var(--mario-orange); }
+        #hud { 
+            justify-content: flex-start; 
+            pointer-events: none; 
+            background: none; 
+        }
+        .hud-info { 
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 10px; 
+            display: flex; 
+            color: white;
+            font-size: 1.5em;
+            text-shadow: 2px 2px #000;
+        }
+        /* NOUVEAU: Style pour la barre d'outils */
+        #toolbar {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 5px;
+            background: rgba(0,0,0,0.4);
+            padding: 5px;
+            border-radius: 8px;
+            z-index: 12;
+        }
+        .toolbar-slot {
+            width: 50px;
+            height: 50px;
+            border: 2px solid #888;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+        }
+        .toolbar-slot.selected {
+            border-color: var(--mario-orange);
+            background: rgba(252, 152, 56, 0.3);
+        }
+        .toolbar-slot img {
+            width: 80%;
+            height: 80%;
+        }
+    </style>
 </head>
 <body>
-  <h1>Attrape la pièce !</h1>
-  <div id="startMenu">
-    <select id="levelSelect">
-      <option value="0">Niveau 1</option>
-      <option value="1">Niveau 2</option>
-      <option value="2">Niveau 3</option>
-      <option value="3">Niveau 4</option>
-    </select>
-    <button id="startButton">Démarrer</button>
-  </div>
-  <canvas id="gameCanvas" width="400" height="400" style="display:none;"></canvas>
-  <script src="game.js"></script>
+    <h1 id="gameTitle">Super Pixel Adventure 2</h1>
+    <div id="gameWrapper">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="mainMenu" class="overlay active">
+            <div class="menu-box">
+                <h2 id="menuTitle">Choisissez un héros</h2>
+                <div id="skinlist"></div>
+                <button data-action="start">START GAME</button>
+            </div>
+        </div>
+
+        <div id="hud" class="overlay">
+            <div class="hud-info">
+                <span id="lives"></span>
+            </div>
+            <!-- La barre d'outils sera injectée ici par le JavaScript -->
+            <div id="toolbar"></div>
+        </div>
+
+        <div id="gameover" class="overlay">
+            <div class="menu-box">
+                <h2 id="message">Game Over</h2>
+                <button id="btnRestart">REJOUER</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="game.js" type="module"></script>
 </body>
 </html>
